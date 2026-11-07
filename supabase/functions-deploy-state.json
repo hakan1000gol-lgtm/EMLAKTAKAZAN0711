@@ -1,0 +1,17 @@
+{
+  "projectId": "72738211",
+  "functions": {
+    "import-listing": {
+      "hasChanged": false,
+      "hash": "371af4cbca1f73d147e11b283ad842dd8e45d4abf4ad42b3565b7a486bd4cc63"
+    },
+    "parcel-lookup": {
+      "hasChanged": false,
+      "hash": "cfee8e1c87d99c5015d02632e6fb984e538633792fbe3e01b58a177b957a70cd"
+    },
+    "property-market-analysis": {
+      "hasChanged": false,
+      "hash": "59cd794912f50850eb78161d8a533a963c95c68dc8c690e665fd1fa299827e07"
+    }
+  }
+}
