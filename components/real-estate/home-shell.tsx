@@ -30,7 +30,7 @@ import { computeValueRating } from '@/lib/real-estate/value-rating';
 import { MapPin as MapPinIcon } from 'lucide-react';
 import { ProfilePage } from '@/components/real-estate/profile-page';
 import { AdminPanel } from '@/components/real-estate/admin-panel';
-import { supabase } from '@/lib/supabase/client';
+import { isSupabaseConfigured, supabase } from '@/lib/supabase/client';
 import { heartbeat, fetchOnlineUserIds, fetchSiteStats, fetchFavoriteCounts, incrementListingViews, type SiteStats } from '@/lib/real-estate/presence';
 import type { Session } from '@supabase/supabase-js';
 import type { Listing, ListingFilters } from '@/lib/real-estate/types';
@@ -77,8 +77,10 @@ export default function HomeShell() {
   const [favoriteCounts, setFavoriteCounts] = useState<Record<string, number>>({});
   const allListings = useMemo(() => [...dbListings.map((item) => ({ ...item, likes: likeCounts[item.id] ?? 0, views: item.views ?? 0 })), ...listings], [dbListings, likeCounts]);
   const results = useMemo(() => filterListings(allListings, filters), [allListings, filters]);
+  const backendReady = isSupabaseConfigured();
 
   useEffect(() => {
+    if (!backendReady) return;
     let mounted = true;
     supabase.auth.getSession().then(({ data }) => { if (mounted) setSession(data.session); });
     const { data } = supabase.auth.onAuthStateChange((event, nextSession) => {
@@ -89,24 +91,27 @@ export default function HomeShell() {
       }
     });
     return () => { mounted = false; data.subscription.unsubscribe(); };
-  }, []);
+  }, [backendReady]);
 
   useEffect(() => {
+    if (!backendReady) return;
     if (!session) { setSaved([]); return; }
     let mounted = true;
     supabase.from('user_favorites').select('listing_key').eq('user_id', session.user.id).then(({ data }) => {
       if (mounted) setSaved((data ?? []).map((item: { listing_key: string }) => item.listing_key));
     });
     return () => { mounted = false; };
-  }, [session]);
+  }, [backendReady, session]);
 
   useEffect(() => {
+    if (!backendReady) return;
     let mounted = true;
     fetchApprovedListings().then((items) => { if (mounted) setDbListings(items); }).catch((cause) => console.error('listing feed failed', cause));
     return () => { mounted = false; };
-  }, []);
+  }, [backendReady]);
 
   useEffect(() => {
+    if (!backendReady) return;
     let mounted = true;
     function refreshStats() {
       fetchSiteStats().then((stats) => { if (mounted) setSiteStats(stats); }).catch(() => {});
@@ -116,24 +121,25 @@ export default function HomeShell() {
     refreshStats();
     const interval = setInterval(refreshStats, 30000);
     return () => { mounted = false; clearInterval(interval); };
-  }, []);
+  }, [backendReady]);
 
   useEffect(() => {
-    if (!session) return;
+    if (!backendReady || !session) return;
     let mounted = true;
     function ping() { heartbeat(session!.user.id).catch(() => {}); }
     ping();
     const interval = setInterval(ping, 60000);
     return () => { mounted = false; clearInterval(interval); };
-  }, [session]);
+  }, [backendReady, session]);
 
   useEffect(() => {
+    if (!backendReady) return;
     if (!session) { setLiked([]); setLikeCounts({}); setUnreadCount(0); return; }
     let mounted = true;
     fetchLikeState(session.user.id).then((state) => { if (mounted) { setLiked(state.likedIds); setLikeCounts(state.counts); } }).catch((cause) => console.error('likes load failed', cause));
     fetchUnreadCount(session.user.id).then((count) => { if (mounted) setUnreadCount(count); }).catch((cause) => console.error('unread count failed', cause));
     return () => { mounted = false; };
-  }, [session]);
+  }, [backendReady, session]);
 
   const toggleList = (id: string, setter: Dispatch<SetStateAction<string[]>>) => setter((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
   const toggleFavorite = async (id: string) => {
