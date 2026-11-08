@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { MapPin } from 'lucide-react';
 import { getDistricts, getNeighborhoods, getProvinces, type TurkeyLocation } from '@/lib/locations/turkiye';
+import { isSupabaseConfigured } from '@/lib/supabase/client';
 
 type LocationParts = { city: string; district: string; neighborhood: string };
 type Theme = 'light' | 'dark';
@@ -16,7 +17,13 @@ export function LocationPicker({ onChange, onPartsChange, theme = 'light' }: { o
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
 
-  useEffect(() => { getProvinces().then(setProvinces).catch(() => setError(true)); }, []);
+  useEffect(() => {
+    if (!isSupabaseConfigured()) {
+      setError(true);
+      return;
+    }
+    void getProvinces().then(setProvinces).catch(() => setError(true));
+  }, []);
   async function chooseProvince(value: string) {
     const selected = provinces.find((item) => String(item.id) === value) ?? null;
     setProvince(selected); setDistrict(null); setNeighborhoods([]); onChange(selected?.name ?? ''); onPartsChange?.({ city: selected?.name ?? '', district: '', neighborhood: '' });

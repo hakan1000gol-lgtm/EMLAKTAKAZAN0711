@@ -3,7 +3,7 @@
 import { FormEvent, useEffect, useState } from 'react';
 import Image from 'next/image';
 import { ArrowLeft, ArrowRight, Building2, Check, Eye, EyeOff, LockKeyhole, Mail, UserRound, X } from 'lucide-react';
-import { supabase } from '@/lib/supabase/client';
+import { isSupabaseConfigured, supabase } from '@/lib/supabase/client';
 
 type AccountRole = 'agent' | 'visitor';
 type AuthMode = 'login' | 'signup' | 'forgot' | 'reset';
@@ -37,6 +37,12 @@ export function AuthDialog({ onClose, initialMode = 'login' }: { onClose: () => 
     event.preventDefault();
     setBusy(true);
     setMessage('');
+
+    if (!isSupabaseConfigured()) {
+      setMessage('Hesap hizmeti şu anda kullanılamıyor. Site yöneticisi Vercel ayarlarını kontrol etmelidir.');
+      setBusy(false);
+      return;
+    }
 
     if (mode === 'forgot') {
       const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin });
